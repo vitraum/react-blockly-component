@@ -2,7 +2,7 @@
  * @param {string} xml
  */
 export default function parseWorkspaceXml(xml) {
-  const arrayTags = ['name', 'custom', 'colour','categories', 'blocks'];
+  const arrayTags = ['name', 'custom', 'colour', 'categories', 'blocks'];
   let xmlDoc = null;
   if (window.DOMParser) {
     xmlDoc = (new DOMParser()).parseFromString(xml, 'text/xml');
@@ -77,28 +77,129 @@ function transformed(result) {
     cNew.name = c.name;
     cNew.colour = c.colour;
     cNew.custom = c.custom;
-    cNew.blocks = [];
-    const blocks = c.block;
-    if (blocks) {
-      if(!(blocks instanceof Array)){
-        cNew.blocks[0] = blocks;
-      }
-      for (let j = 0; j < blocks.length; j++) {
-        const b = blocks[j];
-        const bNew = {};
-        bNew.type = b.type;
-        bNew.fields = {};
-        const fields = b.field;
-        if (fields) {
-          for (let k = 0; k < fields.length; k++) {
-            const f = fields[k];
-            bNew.fields[k] = f;
-          }
-        }
-        cNew.blocks[j] = bNew;
-      }
+    if (c.block) {
+      cNew.blocks = parseBlocks(c.block);
     }
     filteredResult.push(cNew);
   }
   return filteredResult;
+}
+
+function parseBlocks(blocks) {
+  const res = [];
+  if (!(blocks instanceof Array)) {
+    res.push(parseSingleBlock(blocks));
+  } else {
+    for (let i = 0; i < blocks.length; i++) {
+      res.push(parseSingleBlock(blocks[i]));
+    }
+  }
+  return res;
+}
+
+function parseFields(fields) {
+  const res = {};
+  if (!(fields instanceof Array)) {
+    res[fields.name] = fields.value;
+  } else {
+    for (let i = 0; i < fields.length; i++) {
+      res[fields[i].name] = fields[i].value;
+    }
+  }
+  return res;
+}
+
+function parseValues(values) {
+  let res = {};
+  if (!(values instanceof Array)) {
+    res[values.name] = parseSingleValue(values);
+  } else {
+    for (let i = 0; i < values.length; i++) {
+      res[values[i].name] = parseSingleValue(values[i]);
+    }
+  }
+  return res;
+}
+
+function parseShadows(shadows) {
+  const res = {};
+  res.type = shadows.type;
+  res.shadow = true;
+  if (shadows.mutation) {
+    res.mutation = parseMutations(shadows.mutation);
+  }
+  if (shadows.field) {
+    res.fields = parseFields(shadows.field);
+  }
+  if (shadows.value) {
+    res.values = parseValues(shadows.value);
+  }
+  return res;
+}
+
+function parseStatements(statements) {
+  const res = {};
+  let tmp = {};
+  if (statements.value) {
+    tmp = parseValues(statements.value);
+  }
+  if (statements.shadow) {
+    tmp = parseShadows(statements.shadow);
+  }
+  if (statements.block) {
+    tmp = parseSingleBlock(statements.block);
+  }
+  res[statements.name] = tmp;
+  return res;
+}
+
+function parseNext(next) {
+  let res = {};
+  if (next.block) {
+    res = parseSingleBlock(next.block);
+  }
+  if (next.shadow) {
+    res = parseShadows(next.shadow);
+  }
+  return res;
+}
+
+function parseMutations(mutations) {
+  const res = {};
+  res.attributes = mutations;
+  res.innerContent = mutations.value;
+  return res;
+}
+
+function parseSingleBlock(block) {
+  const res = {};
+  res.type = block.type;
+  res.shadow = false;
+  if (block.mutation) {
+    res.mutation = parseMutations(block.mutation);
+  }
+  if (block.field) {
+    res.fields = parseFields(block.field);
+  }
+  if (block.value) {
+    res.values = parseValues(block.value);
+  }
+  if (block.next) {
+    res.next = parseNext(block.next);
+  }
+  if (block.statement) {
+    res.statements = parseStatements(block.statement);
+  }
+  return res;
+}
+
+function parseSingleValue(value) {
+  let res = {};
+  if (value.shadow) {
+    res = parseShadows(value.shadow);
+  }
+  if (value.block) {
+    res = parseSingleBlock(value.block);
+  }
+  return res;
 }
