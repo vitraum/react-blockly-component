@@ -137,20 +137,6 @@ function parseSingleBlock(block) {
   return res;
 }
 
-function parseStatement(statement) {
-  const res = {};
-  let tmp = parseObject(statement);
-  res[statement.name] = tmp;
-  return res;
-}
-
-function parseMutation(mutation) {
-  const res = {};
-  res.attributes = mutation;
-  res.innerContent = mutation.value;
-  return res;
-}
-
 function parseObject(obj) {
   let res = {};
   if (obj.shadow) {
@@ -165,7 +151,11 @@ function parseObject(obj) {
     res = parseSingleBlock(obj.block);
   }
   if (obj.mutation) {
-    res.mutation = parseMutation(obj.mutation);
+    let mutation = obj.mutation;
+    let tmp = {};
+    tmp.attributes = mutation;
+    tmp.innerContent = mutation.value;
+    res.mutation = tmp;
   }
   if (obj.field) {
     res.fields = parseFields(obj.field);
@@ -177,7 +167,10 @@ function parseObject(obj) {
     res.next = parseObject(obj.next);
   }
   if (obj.statement) {
-    res.statements = parseStatement(obj.statement);
+    let statement = obj.statement;
+    let tmp = {};
+    tmp[statement.name] = parseObject(statement);
+    res.statements = tmp;
   }
   return res;
 }
