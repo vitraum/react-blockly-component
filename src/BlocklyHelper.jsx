@@ -129,26 +129,19 @@ function makeArray(obj) {
 }
 
 function parseSingleBlock(block) {
-  let obj1 = {};
-  obj1.type = block.type;
-  obj1.shadow = false;
-  let obj2 = parseObject(block);
-  let res = Object.assign(obj1, obj2);
+  let res = Object.assign({"type": block.type}, parseObject(block));
   return res;
 }
 
 function parseObject(obj) {
   let res = {};
   if (obj.shadow) {
-    let shadow = obj.shadow;
-    let obj1 = {};
-    obj1.type = shadow.type;
-    obj1.shadow = true;
-    let obj2 = parseObject(shadow);
-    res = Object.assign(obj1, obj2);
+    res = parseSingleBlock(obj.shadow);
+    res.shadow = true;
   }
   if (obj.block) {
     res = parseSingleBlock(obj.block);
+    res.shadow = false;
   }
   if (obj.mutation) {
     let mutation = obj.mutation;
