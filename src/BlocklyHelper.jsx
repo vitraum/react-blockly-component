@@ -87,119 +87,97 @@ function transformed(result) {
 
 function parseBlocks(blocks) {
   const res = [];
-  if (!(blocks instanceof Array)) {
-    res.push(parseSingleBlock(blocks));
-  } else {
-    for (let i = 0; i < blocks.length; i++) {
-      res.push(parseSingleBlock(blocks[i]));
-    }
-  }
+  let arr = makeArray(blocks);
+
+  arr.forEach(block => {
+    res.push(parseSingleBlock(block));
+  });
+
   return res;
 }
 
 function parseFields(fields) {
   const res = {};
-  if (!(fields instanceof Array)) {
-    res[fields.name] = fields.value;
-  } else {
-    for (let i = 0; i < fields.length; i++) {
-      res[fields[i].name] = fields[i].value;
-    }
-  }
+  let arr = makeArray(fields);
+
+  arr.forEach(field => {
+    res[field.name] = field.value;
+  });
+
   return res;
 }
 
 function parseValues(values) {
-  let res = {};
-  if (!(values instanceof Array)) {
-    res[values.name] = parseSingleValue(values);
+  const res = {};
+  let arr = makeArray(values);
+
+  arr.forEach(value => {
+    res[value.name] = parseObject(value);
+  });
+
+  return res;
+}
+
+function makeArray(obj) {
+  let arr = [];
+  if (!(obj instanceof Array)) {
+    arr.push(obj);
   } else {
-    for (let i = 0; i < values.length; i++) {
-      res[values[i].name] = parseSingleValue(values[i]);
-    }
+    arr = obj;
   }
-  return res;
-}
-
-function parseShadows(shadows) {
-  const res = {};
-  res.type = shadows.type;
-  res.shadow = true;
-  if (shadows.mutation) {
-    res.mutation = parseMutations(shadows.mutation);
-  }
-  if (shadows.field) {
-    res.fields = parseFields(shadows.field);
-  }
-  if (shadows.value) {
-    res.values = parseValues(shadows.value);
-  }
-  return res;
-}
-
-function parseStatements(statements) {
-  const res = {};
-  let tmp = {};
-  if (statements.value) {
-    tmp = parseValues(statements.value);
-  }
-  if (statements.shadow) {
-    tmp = parseShadows(statements.shadow);
-  }
-  if (statements.block) {
-    tmp = parseSingleBlock(statements.block);
-  }
-  res[statements.name] = tmp;
-  return res;
-}
-
-function parseNext(next) {
-  let res = {};
-  if (next.block) {
-    res = parseSingleBlock(next.block);
-  }
-  if (next.shadow) {
-    res = parseShadows(next.shadow);
-  }
-  return res;
-}
-
-function parseMutations(mutations) {
-  const res = {};
-  res.attributes = mutations;
-  res.innerContent = mutations.value;
-  return res;
+  return arr;
 }
 
 function parseSingleBlock(block) {
-  const res = {};
-  res.type = block.type;
-  res.shadow = false;
-  if (block.mutation) {
-    res.mutation = parseMutations(block.mutation);
-  }
-  if (block.field) {
-    res.fields = parseFields(block.field);
-  }
-  if (block.value) {
-    res.values = parseValues(block.value);
-  }
-  if (block.next) {
-    res.next = parseNext(block.next);
-  }
-  if (block.statement) {
-    res.statements = parseStatements(block.statement);
-  }
+  let obj1 = {};
+  obj1.type = block.type;
+  obj1.shadow = false;
+  let obj2 = parseObject(block);
+  let res = Object.assign(obj1, obj2);
   return res;
 }
 
-function parseSingleValue(value) {
+function parseStatement(statement) {
+  const res = {};
+  let tmp = parseObject(statement);
+  res[statement.name] = tmp;
+  return res;
+}
+
+function parseMutation(mutation) {
+  const res = {};
+  res.attributes = mutation;
+  res.innerContent = mutation.value;
+  return res;
+}
+
+function parseObject(obj) {
   let res = {};
-  if (value.shadow) {
-    res = parseShadows(value.shadow);
+  if (obj.shadow) {
+    let shadow = obj.shadow;
+    let obj1 = {};
+    obj1.type = shadow.type;
+    obj1.shadow = true;
+    let obj2 = parseObject(shadow);
+    res = Object.assign(obj1, obj2);
   }
-  if (value.block) {
-    res = parseSingleBlock(value.block);
+  if (obj.block) {
+    res = parseSingleBlock(obj.block);
+  }
+  if (obj.mutation) {
+    res.mutation = parseMutation(obj.mutation);
+  }
+  if (obj.field) {
+    res.fields = parseFields(obj.field);
+  }
+  if (obj.value) {
+    res.values = parseValues(obj.value);
+  }
+  if (obj.next) {
+    res.next = parseObject(obj.next);
+  }
+  if (obj.statement) {
+    res.statements = parseStatement(obj.statement);
   }
   return res;
 }
