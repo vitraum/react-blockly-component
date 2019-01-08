@@ -82,24 +82,27 @@ function transformed(result) {
     }
     filteredResult.push(cNew);
   }
+
   return filteredResult;
 }
 
 function parseBlocks(blocks) {
-  const res = [];
-  let arr = makeArray(blocks);
+  let arr = ensureArray(blocks);
 
+  const res = [];
   arr.forEach(block => {
-    res.push(parseSingleBlock(block));
+    let obj = parseObject(block);
+    obj.type = block.type;
+    res.push(obj);
   });
 
   return res;
 }
 
 function parseFields(fields) {
-  const res = {};
-  let arr = makeArray(fields);
+  let arr = ensureArray(fields);
 
+  const res = {};
   arr.forEach(field => {
     res[field.name] = field.value;
   });
@@ -108,9 +111,9 @@ function parseFields(fields) {
 }
 
 function parseValues(values) {
-  const res = {};
-  let arr = makeArray(values);
+  let arr = ensureArray(values);
 
+  const res = {};
   arr.forEach(value => {
     res[value.name] = parseObject(value);
   });
@@ -118,37 +121,31 @@ function parseValues(values) {
   return res;
 }
 
-function makeArray(obj) {
-  let arr = [];
-  if (!(obj instanceof Array)) {
-    arr.push(obj);
-  } else {
-    arr = obj;
+function ensureArray(obj) {
+  if (obj instanceof Array) {
+    return obj;
   }
-  return arr;
-}
 
-function parseSingleBlock(block) {
-  let res = Object.assign({"type": block.type}, parseObject(block));
-  return res;
+  return [obj];
 }
 
 function parseObject(obj) {
   let res = {};
   if (obj.shadow) {
-    res = parseSingleBlock(obj.shadow);
+    res = parseObject(obj.shadow);
+    res.type = obj.shadow.type;
     res.shadow = true;
-  }
-  if (obj.block) {
-    res = parseSingleBlock(obj.block);
+  } else if (obj.block) {
+    res = parseObject(obj.block);
+    res.type = obj.block.type;
     res.shadow = false;
   }
+
   if (obj.mutation) {
-    let mutation = obj.mutation;
-    let tmp = {};
-    tmp.attributes = mutation;
-    tmp.innerContent = mutation.value;
-    res.mutation = tmp;
+    res.mutation = {
+      attributes: obj.mutation,
+      innerContent: obj.mutation.value,
+    };
   }
   if (obj.field) {
     res.fields = parseFields(obj.field);
@@ -160,10 +157,10 @@ function parseObject(obj) {
     res.next = parseObject(obj.next);
   }
   if (obj.statement) {
-    let statement = obj.statement;
-    let tmp = {};
-    tmp[statement.name] = parseObject(statement);
-    res.statements = tmp;
+    res.statements = {
+      [obj.statement.name]: parseObject(obj.statement),
+    };
   }
+
   return res;
 }
